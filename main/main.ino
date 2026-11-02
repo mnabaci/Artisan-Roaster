@@ -3,10 +3,9 @@
 #include <Adafruit_ST7789.h>
 #include <SPI.h>  // Arduino SPI library
 
-#include "main.h"
-
 // Commands and commands handler
-#include "../lib/CommandHandler/CommandHandler.cpp"
+#include "./main.h"
+#include "../lib/CommandHandler/CommandHandler.h"
 #include "../lib/Commands/UnitsCommand.h"
 #include "../lib/Commands/FanCommand.h"
 #include "../lib/Commands/ReadCommand.h"
@@ -41,6 +40,12 @@ void setup() {
 }
 
 void loop() {
+  // UBaseType_t freeStack = uxTaskGetStackHighWaterMark(NULL);
+  // Serial.print("Free Stack: ");
+  // Serial.println(freeStack);
+
+  // Serial.print("Free Heap: ");
+  // Serial.println(ESP.getFreeHeap());
   handleSerialCommand();
 
   // Read temperatures from both sensors
@@ -91,18 +96,20 @@ void initializeTFT() {
 }
 
 void handleSerialCommand() {
-    if (Serial.available() > 0) {
-        String command = Serial.readStringUntil('\n');
-        command.trim(); // Remove whitespace
-        commandHandler.handleCommand(command);
-    }
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();  // Remove whitespace
+    commandHandler.handleCommand(command);
+  }
 }
 
 // Reads temperature from the thermocouple
 float readTemperature(TemperatureUnit unit, int sensor) {
-  int thermo_cs = sensor == 1 ? PIN_THERMO_CS : PIN_THERMO2_CS;
+  int thermo_cs = (sensor == 1) ? PIN_THERMO_CS : PIN_THERMO2_CS;
 
-  digitalWrite(TFT_CS, HIGH);                                       // Disable TFT
+  SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
+
+  digitalWrite(TFT_CS, HIGH);    // Disable TFT
   digitalWrite(thermo_cs, LOW);  // Enable selected thermocouple
 
   float temp = (unit == FAHRENHEIT)
@@ -110,6 +117,7 @@ float readTemperature(TemperatureUnit unit, int sensor) {
                  : (sensor == 1 ? thermocouple.readCelsius() : thermocouple2.readCelsius());
 
   digitalWrite(thermo_cs, HIGH);  // Disable selected thermocouple
+  SPI.endTransaction();           // End SPI transaction
 
   if (isnan(temp)) {
     Serial.print("Error: Temperature read failed for sensor ");
@@ -125,7 +133,7 @@ void updateTFT(float temp1, float temp2, bool fanState) {
   digitalWrite(TFT_CS, LOW);  // Enable TFT
 
   // Sensor 1 Temperature
-  tft.fillRect(120, 70, 1, 1, ST77XX_BLACK);  // Clear previous temp
+  tft.fillRect(120, 70, 1, 1, ST77XX_BLACK);     // Clear previous temp
   tft.fillRect(120, 70, 160, 30, ST77XX_BLACK);  // Clear previous temp
   tft.setCursor(120, 70);
   if (temp1 < 0) {
