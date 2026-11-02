@@ -9,6 +9,8 @@
 #include "../lib/Commands/UnitsCommand.h"
 #include "../lib/Commands/FanCommand.h"
 #include "../lib/Commands/ReadCommand.h"
+#include "../lib/Commands/ChanCommand.h"
+#include "../lib/Commands/HeatCommand.h"
 
 // TFT Object
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
@@ -30,10 +32,13 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Artisan Roasting Software Initialized");
 
-  // Register commands
+  // Register commands. OT2 is Artisan's fan channel; OT1 (heater) has no output on this
+  // board and is just acked (see HeatCommand.h).
   commandHandler.registerCommand("UNITS", handleUnitsCommand);
-  commandHandler.registerCommand("OT1", handleFanCommand);
+  commandHandler.registerCommand("OT1", handleHeatCommand);
+  commandHandler.registerCommand("OT2", handleFanCommand);
   commandHandler.registerCommand("READ", handleReadCommand);
+  commandHandler.registerCommand("CHAN", handleChanCommand);
 
   initializeHardware();
   initializeTFT();

@@ -4,23 +4,18 @@
 #include <Arduino.h>
 #include "../CommandHandler/CommandHandler.h"
 
+// Artisan sends a 0-100 duty value on its fan channel. This board's fan is a plain relay
+// (no PWM), so any nonzero value just turns it on.
 void handleFanCommand(const String &args)
 {
-    char state = args.charAt(0);
-    if (state == '0')
-    {
-        digitalWrite(PIN_FAN, LOW); // Turn off fan
-        Serial.println("#OK Fan OFF");
-    }
-    else if (state == '1')
-    {
-        digitalWrite(PIN_FAN, HIGH); // Turn on fan
-        Serial.println("#OK Fan ON");
-    }
-    else
+    int value = args.toInt();
+    if (value < 0 || value > 100)
     {
         Serial.println("#ERROR: Invalid Fan State");
+        return;
     }
+    digitalWrite(PIN_FAN, value > 0 ? HIGH : LOW);
+    Serial.println(value > 0 ? "#OK Fan ON" : "#OK Fan OFF");
 }
 
 #endif
